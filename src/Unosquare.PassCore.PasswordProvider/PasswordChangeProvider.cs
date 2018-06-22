@@ -39,23 +39,46 @@
                     // Verify user is not a member of an excluded group
                     if (_options.CheckRestrictedAdGroups)
                     {
-                        foreach (var userPrincipalAuthGroup in userPrincipal.GetAuthorizationGroups())
-                        {
-                            if (_options.RestrictedADGroups.Contains(userPrincipalAuthGroup.Name))
-                            {
-                                return new ApiErrorItem { ErrorCode = ApiErrorCode.ChangeNotPermitted };
-                            }
-                        }
+                    //    foreach (var userPrincipalAuthGroup in userPrincipal.GetAuthorizationGroups())
+                    //    {
+                    //        if (_options.RestrictedADGroups.Contains(userPrincipalAuthGroup.Name))
+                    //        {
+                    //            return new ApiErrorItem { ErrorCode = ApiErrorCode.ChangeNotPermitted };
+                    //        }
+                    //    }
+						foreach (var _optionsrestrictedgroup in _options.RestrictedADGroups)
+						{
+							GroupPrincipal resgroup = GroupPrincipal.FindByIdentity(principalContext, _optionsrestrictedgroup);
+							if (userPrincipal.IsMemberOf(resgroup))
+							{
+								return new ApiErrorItem { ErrorCode = ApiErrorCode.ChangeNotPermitted };
+							}
+						}
                     }
 
                     if (_options.CheckAllowedAdGroups)
                     {
-                        foreach (var userPrincipalAuthGroup in userPrincipal.GetAuthorizationGroups())
+                    //    foreach (var userPrincipalAuthGroup in userPrincipal.GetAuthorizationGroups())
+                    //   {
+                    //        if (!_options.AllowedADGroups.Contains(userPrincipalAuthGroup.Name))
+                    //        {
+                    //            return new ApiErrorItem { ErrorCode = ApiErrorCode.ChangeNotPermitted };
+                    //        }
+                    //    }
+					bool memberofallowedgroup = false;
+                        foreach (var _optionsallowedgroup in _options.AllowedADGroups)
                         {
-                            if (!_options.AllowedADGroups.Contains(userPrincipalAuthGroup.Name))
+                            GroupPrincipal allowgroup = GroupPrincipal.FindByIdentity(principalContext, _optionsallowedgroup);
+                            if (userPrincipal.IsMemberOf(allowgroup))
                             {
-                                return new ApiErrorItem { ErrorCode = ApiErrorCode.ChangeNotPermitted };
+                                memberofallowedgroup = true;
+                                break;
                             }
+                            
+                        }
+                        if (memberofallowedgroup != true)
+                        {
+                            return new ApiErrorItem { ErrorCode = ApiErrorCode.ChangeNotPermitted };
                         }
                     }
 
@@ -105,16 +128,25 @@
         private PrincipalContext AcquirePrincipalContext()
         {
             PrincipalContext principalContext;
-
             if (_options.UseAutomaticContext)
             {
-                principalContext = new PrincipalContext(ContextType.Domain);
-            }
+				//  principalContext = new PrincipalContext(ContextType.Domain);
+                ContextOptions options = ContextOptions.Negotiate | ContextOptions.ServerBind| ContextOptions.SecureSocketLayer;
+                principalContext = new PrincipalContext(
+                    ContextType.Domain,
+                    null,
+                    $"{_options.LdapSearchbase}",
+                    options,
+                    _options.LdapUsername,
+                    _options.LdapPassword
+                    );
+			}
             else
             {
                 principalContext = new PrincipalContext(
                     ContextType.Domain,
                     $"{_options.LdapHostname}:{_options.LdapPort}",
+                    $"{_options.LdapSearchbase}",
                     _options.LdapUsername,
                     _options.LdapPassword);
             }

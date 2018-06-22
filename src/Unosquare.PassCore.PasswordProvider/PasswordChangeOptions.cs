@@ -7,6 +7,7 @@
         public bool UseAutomaticContext { get; set; } = true;
         public int LdapPort { get; set; } = 389;
         public string LdapHostname { get; set; }
+        public string LdapSearchbase { get; set; }
         public string LdapPassword { get; set; }
         public string LdapUsername { get; set; }
         public List<string> RestrictedADGroups { get; set; }
